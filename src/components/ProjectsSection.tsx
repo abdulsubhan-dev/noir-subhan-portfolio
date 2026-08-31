@@ -261,7 +261,7 @@ function BrandsSection({ brands }: { brands: DBBrand[] }) {
             marginBottom: 14,
           }}
         >
-          Clientele
+          Clients
         </p>
         <h3
           style={{
