@@ -7,6 +7,7 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Lock, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react'
+import brandLogo from '../assets/logo.png'
 
 interface AdminLoginProps {
   onLogin: (passcode: string) => Promise<{ success: boolean; message?: string }>
@@ -58,9 +59,7 @@ export function AdminLogin({ onLogin, onBackToSite }: AdminLoginProps) {
       >
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/10 text-[#F57C00] mb-4 shadow-inner">
-            <Lock className="w-5 h-5" />
-          </div>
+          <img src={brandLogo} alt="Noir Subhan Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
           
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-xs font-bold tracking-[0.25em] text-[#F57C00] uppercase">

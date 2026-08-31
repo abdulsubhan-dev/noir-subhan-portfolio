@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import brandLogo from '../assets/logo.png'
 
 // ─── Design tokens — same system as the hero section ─────────────────────────
 const C = {
@@ -190,23 +191,28 @@ export default function Navbar() {
             href="#"
             onClick={e => { e.preventDefault(); scrollTo('#') }}
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              textDecoration: 'none',
+              marginRight: 'auto',
+              flexShrink: 0,
+            }}
+          >
+            <img src={brandLogo} alt="Noir Subhan Logo" style={{ height: 30, width: 'auto', borderRadius: 4, objectFit: 'contain' }} />
+            <span style={{
               fontFamily: 'inherit',
               fontWeight: 800,
               fontSize: '0.78rem',
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
-              color: C.textPrimary,
-              textDecoration: 'none',
-              flexShrink: 0,
-              marginRight: 'auto',
-              /* Mirror the hero gradient text on the brand label */
               background: 'linear-gradient(180deg, #646973 0%, #BBCCD7 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-            }}
-          >
-            NOIR_SUBHAN
+            }}>
+              NOIR_SUBHAN
+            </span>
           </a>
 
           {/* ── Desktop links ──────────────────────────────────────────── */}

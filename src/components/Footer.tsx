@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { MapPin, Phone, Mail } from 'lucide-react'
+import brandLogo from '../assets/logo.png'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -177,17 +178,19 @@ export default function Footer() {
               }}>
                 Identity &amp; Location
               </p>
-              <div style={{
-                fontWeight: 900, textTransform: 'uppercase',
-                letterSpacing: '0.08em', fontSize: 'clamp(1.3rem, 2.5vw, 1.8rem)',
-                background: 'linear-gradient(180deg, #646973 0%, #BBCCD7 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                marginBottom: 6,
-                lineHeight: 1.1,
-              }}>
-                NOIR_SUBHAN
+              <div className="flex items-center gap-3 mb-3">
+                <img src={brandLogo} alt="Noir Subhan Logo" style={{ height: 48, width: 'auto', borderRadius: 6, objectFit: 'contain' }} />
+                <div style={{
+                  fontWeight: 900, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', fontSize: 'clamp(1.3rem, 2.5vw, 1.8rem)',
+                  background: 'linear-gradient(180deg, #646973 0%, #BBCCD7 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  lineHeight: 1.1,
+                }}>
+                  NOIR_SUBHAN
+                </div>
               </div>
               <div style={{
                 color: T.silverMuted, fontSize: 'clamp(0.9rem, 1.4vw, 1.05rem)',

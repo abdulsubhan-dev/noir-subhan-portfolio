@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import brandLogo from '../assets/logo.png'
 import {
   LayoutDashboard,
   FolderKanban,
@@ -58,9 +59,7 @@ export function AdminLayout({
         <div>
           {/* Brand */}
           <div className="flex items-center gap-3 pb-6 border-b border-white/5">
-            <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#F57C00] font-black text-sm shadow-inner">
-              NS
-            </div>
+            <img src={brandLogo} alt="Logo" className="w-9 h-9 object-contain rounded-lg" />
             <div>
               <h2 className="text-sm font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-[#BBCCD7] to-[#646973]">
                 NOIR_SUBHAN
