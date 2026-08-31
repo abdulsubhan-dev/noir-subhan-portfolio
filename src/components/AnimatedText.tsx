@@ -13,7 +13,7 @@ function AnimatedChar({
   start: number
   end: number
 }) {
-  const opacity = useTransform(scrollYProgress, [start, end], [0.2, 1])
+  const opacity = useTransform(scrollYProgress, [start, end], [0.25, 1])
   return (
     <span style={{ position: 'relative', display: 'inline' }}>
       {/* invisible placeholder preserving layout width */}
@@ -35,7 +35,7 @@ export default function AnimatedText({ text, className }: Props) {
   const ref = useRef<HTMLParagraphElement | null>(null)
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ['start 0.8', 'end 0.2'],
+    offset: ['start 0.88', 'start 0.38'],
   })
 
   const chars = Array.from(text)

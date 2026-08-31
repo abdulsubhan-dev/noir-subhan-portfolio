@@ -2,19 +2,37 @@
  * supabase.ts — Supabase Cloud Integration Service
  * ─────────────────────────────────────────────────────────────────────────────
  * Enables instant multi-device cloud synchronization for Projects, Categories,
- * Brands, and uploaded image assets.
+ * Brands, and uploaded image assets. Automatically sanitizes project URLs.
  */
 
 import { createClient } from '@supabase/supabase-js'
 import type { DBBrand, DBCategory, DBProject } from './db'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
+
+// Auto-clean URL if user pasted the Dashboard URL instead of API URL
+const sanitizeSupabaseUrl = (url: string): string => {
+  let clean = url.trim()
+  if (clean.includes('/dashboard/project/')) {
+    const match = clean.match(/\/dashboard\/project\/([a-z0-9]+)/i)
+    if (match && match[1]) {
+      return `https://${match[1]}.supabase.co`
+    }
+  }
+  if (clean.endsWith('/')) {
+    clean = clean.slice(0, -1)
+  }
+  return clean
+}
+
+export const supabaseUrl = sanitizeSupabaseUrl(rawSupabaseUrl)
 
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(
     supabaseUrl &&
     supabaseUrl.startsWith('https://') &&
+    supabaseUrl.endsWith('.supabase.co') &&
     supabaseAnonKey &&
     supabaseAnonKey.length > 20
   )

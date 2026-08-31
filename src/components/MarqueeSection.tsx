@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
 
 // ── Import marquee images locally ─────────────────────────────────────────────
 import img01 from '../assets/marquee/marquee-01.gif'
@@ -28,74 +29,82 @@ const ALL_IMAGES = [
   img15, img16, img17, img18, img19, img20,
 ]
 
-// ── Scroll offset hook ────────────────────────────────────────────────────────
-function useScrollOffset(ref: React.RefObject<HTMLElement | null>) {
-  const [offset, setOffset] = useState(0)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    function onScroll() {
-      const sectionTop = el!.getBoundingClientRect().top + window.scrollY
-      const val = (window.scrollY - sectionTop + window.innerHeight) * 0.3
-      setOffset(val)
-    }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [ref])
-  return offset
-}
-
 export default function MarqueeSection() {
-  const ref = useRef<HTMLElement | null>(null)
-  const offset = useScrollOffset(ref)
+  const containerRef = useRef<HTMLDivElement | null>(null)
 
-  const row1 = ALL_IMAGES.slice(0, 10)   // first 10
-  const row2 = ALL_IMAGES.slice(10)       // next 10
+  // Track scroll progress while scrolling through this pinned section
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end'],
+  })
+
+  // Row 1 & 2 horizontal scroll transforms driven by user scrolling
+  const xRow1 = useTransform(scrollYProgress, [0, 1], ['0%', '-42%'])
+  const xRow2 = useTransform(scrollYProgress, [0, 1], ['-42%', '0%'])
+
+  const row1 = ALL_IMAGES.slice(0, 10)
+  const row2 = ALL_IMAGES.slice(10)
 
   return (
-    <section
-      ref={ref}
-      className="pt-24 sm:pt-32 md:pt-40 pb-10 overflow-hidden"
-      style={{ background: '#0C0C0C' }}
+    // Outer scroll track (250vh height keeps screen pinned while user scrolls through cards)
+    <div
+      ref={containerRef}
+      style={{
+        position: 'relative',
+        height: '250vh',
+        background: '#0C0C0C',
+      }}
     >
-      <div className="flex flex-col gap-3">
-        {/* Row 1 — moves RIGHT */}
-        <div className="overflow-hidden" style={{ willChange: 'transform' }}>
-          <div
-            className="flex gap-3"
-            style={{ transform: `translateX(${offset - 200}px)` }}
-          >
-            {[...row1, ...row1, ...row1].map((src, i) => (
-              <MarqueeCard key={i} src={src} alt={`project preview ${(i % 10) + 1}`} />
-            ))}
+      {/* Sticky viewport container — stays completely still until all images finish */}
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <div className="flex flex-col gap-3">
+          {/* Row 1 — moves RIGHT to LEFT smoothly as user scrolls */}
+          <div className="overflow-hidden" style={{ willChange: 'transform' }}>
+            <motion.div
+              className="flex gap-3"
+              style={{ x: xRow1, width: 'max-content' }}
+            >
+              {[...row1, ...row1, ...row1].map((src, i) => (
+                <MarqueeCard key={i} src={src} alt={`project preview ${(i % 10) + 1}`} />
+              ))}
+            </motion.div>
           </div>
-        </div>
 
-        {/* Row 2 — moves LEFT */}
-        <div className="overflow-hidden" style={{ willChange: 'transform' }}>
-          <div
-            className="flex gap-3"
-            style={{ transform: `translateX(${-(offset - 200)}px)` }}
-          >
-            {[...row2, ...row2, ...row2].map((src, i) => (
-              <MarqueeCard key={i} src={src} alt={`project preview ${(i % 10) + 11}`} />
-            ))}
+          {/* Row 2 — moves LEFT to RIGHT smoothly as user scrolls */}
+          <div className="overflow-hidden" style={{ willChange: 'transform' }}>
+            <motion.div
+              className="flex gap-3"
+              style={{ x: xRow2, width: 'max-content' }}
+            >
+              {[...row2, ...row2, ...row2].map((src, i) => (
+                <MarqueeCard key={i} src={src} alt={`project preview ${(i % 10) + 11}`} />
+              ))}
+            </motion.div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
-// ── Square card — image fully visible, never cropped ─────────────────────────
+// ── Square card — compact scale so both rows fit perfectly in frame ────────
 function MarqueeCard({ src, alt }: { src: string; alt: string }) {
   return (
     <div
       className="rounded-2xl flex-shrink-0 overflow-hidden"
       style={{
-        width: 320,
-        height: 320,
+        width: 'clamp(180px, 20vw, 230px)',
+        height: 'clamp(180px, 20vw, 230px)',
         background: '#111111',
         display: 'flex',
         alignItems: 'center',
