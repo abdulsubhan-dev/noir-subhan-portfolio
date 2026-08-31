@@ -1,7 +1,8 @@
 /**
  * SettingsTab.tsx
  * ─────────────────────────────────────────────────────────────────────────────
- * Admin settings, passcode management, full JSON backup & restore.
+ * Admin settings, passcode management, full JSON backup & restore, and
+ * Supabase Multi-Device Cloud Sync configuration.
  */
 
 import React, { useState, useRef } from 'react'
@@ -16,6 +17,11 @@ import {
   AlertTriangle,
   Key,
   HardDrive,
+  Cloud,
+  CloudCheck,
+  Globe,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { usePortfolioData } from '../context/PortfolioContext'
 
@@ -25,8 +31,65 @@ interface SettingsTabProps {
   onConfirmReset: () => void
 }
 
+const SUPABASE_SQL_SCRIPT = `-- 1. Create Brands Table
+CREATE TABLE IF NOT EXISTS public.brands (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  website TEXT,
+  description TEXT,
+  "order" INT DEFAULT 1,
+  visible BOOLEAN DEFAULT true,
+  "createdAt" BIGINT,
+  "updatedAt" BIGINT
+);
+
+-- 2. Create Categories Table
+CREATE TABLE IF NOT EXISTS public.categories (
+  id TEXT PRIMARY KEY,
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  "coverImage" TEXT,
+  "order" INT DEFAULT 1,
+  visible BOOLEAN DEFAULT true,
+  "createdAt" BIGINT,
+  "updatedAt" BIGINT
+);
+
+-- 3. Create Projects Table
+CREATE TABLE IF NOT EXISTS public.projects (
+  id TEXT PRIMARY KEY,
+  "categorySlug" TEXT NOT NULL,
+  "brandName" TEXT NOT NULL,
+  title TEXT NOT NULL,
+  image TEXT NOT NULL,
+  type TEXT,
+  description TEXT,
+  "isFeatured" BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'published',
+  "order" INT DEFAULT 1,
+  "createdAt" BIGINT,
+  "updatedAt" BIGINT
+);
+
+-- Enable Row Level Security & Public Access for Portfolio
+ALTER TABLE public.brands ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public Read Brands" ON public.brands FOR SELECT USING (true);
+CREATE POLICY "Public All Brands" ON public.brands FOR ALL USING (true);
+
+CREATE POLICY "Public Read Categories" ON public.categories FOR SELECT USING (true);
+CREATE POLICY "Public All Categories" ON public.categories FOR ALL USING (true);
+
+CREATE POLICY "Public Read Projects" ON public.projects FOR SELECT USING (true);
+CREATE POLICY "Public All Projects" ON public.projects FOR ALL USING (true);
+`
+
 export function SettingsTab({ onSuccess, onError, onConfirmReset }: SettingsTabProps) {
-  const { changePassword, exportBackup, importBackup, projects, categories, brands } =
+  const { changePassword, exportBackup, importBackup, projects, categories, brands, isCloudConnected } =
     usePortfolioData()
 
   const [oldPass, setOldPass] = useState('')
@@ -37,6 +100,7 @@ export function SettingsTab({ onSuccess, onError, onConfirmReset }: SettingsTabP
 
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+  const [copiedSql, setCopiedSql] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Passcode change
@@ -115,6 +179,13 @@ export function SettingsTab({ onSuccess, onError, onConfirmReset }: SettingsTabP
     }
   }
 
+  const copySql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_SCRIPT)
+    setCopiedSql(true)
+    setTimeout(() => setCopiedSql(false), 3000)
+    onSuccess('Supabase SQL setup script copied to clipboard!')
+  }
+
   return (
     <div className="space-y-8 max-w-4xl">
       {/* Top Header */}
@@ -125,34 +196,145 @@ export function SettingsTab({ onSuccess, onError, onConfirmReset }: SettingsTabP
           </span>
         </div>
         <h1 className="text-2xl font-black uppercase tracking-tight text-[#D7E2EA]">
-          System Settings &amp; Data Backup
+          System Settings &amp; Cloud Database
         </h1>
         <p className="text-xs text-white/50 mt-0.5">
-          Manage your security passcode, export offline backups, and manage local storage.
+          Manage your security passcode, export offline backups, and configure Multi-Device Cloud Sync.
         </p>
       </div>
 
-      {/* Database Overview Card */}
-      <div className="p-6 rounded-3xl bg-[#0C0C0C] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#F57C00]/10 text-[#F57C00] flex items-center justify-center flex-shrink-0">
-            <HardDrive className="w-6 h-6" />
+      {/* Cloud & Local Database Status Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Supabase Cloud Connection Status */}
+        <div className="p-6 rounded-3xl bg-[#0C0C0C] border border-white/10 flex flex-col justify-between space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#F57C00]/10 text-[#F57C00] flex items-center justify-center flex-shrink-0">
+                <Globe className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#D7E2EA]">
+                  Multi-Device Cloud Sync
+                </h3>
+                <p className="text-[11px] text-white/50 mt-0.5">
+                  {isCloudConnected
+                    ? 'Supabase Cloud Database active'
+                    : 'Local Mode (IndexedDB)'}
+                </p>
+              </div>
+            </div>
+
+            <span
+              className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5 ${
+                isCloudConnected
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+              }`}
+            >
+              {isCloudConnected ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Cloud Active
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5" /> Local Only
+                </>
+              )}
+            </span>
           </div>
-          <div>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#D7E2EA]">
-              IndexedDB Persistent Storage
-            </h3>
-            <p className="text-xs text-white/50 mt-0.5">
-              Client-side persistent database active. Storing {projects.length} projects,{' '}
-              {categories.length} categories, and {brands.length} brands.
-            </p>
-          </div>
+
+          <p className="text-xs text-white/60 leading-relaxed">
+            {isCloudConnected
+              ? 'Your portfolio is synced to Supabase Cloud! Any changes made in Admin are instantly live across all devices globally.'
+              : 'Add your free Supabase URL & Key in .env to enable instant automatic sync across all mobiles and PCs.'}
+          </p>
         </div>
 
-        <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5" /> Healthy
-        </span>
+        {/* Local IndexedDB Card */}
+        <div className="p-6 rounded-3xl bg-[#0C0C0C] border border-white/10 flex flex-col justify-between space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white/5 text-[#D7E2EA] flex items-center justify-center flex-shrink-0">
+                <HardDrive className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#D7E2EA]">
+                  Local Offline Cache
+                </h3>
+                <p className="text-[11px] text-white/50 mt-0.5">
+                  IndexedDB Storage
+                </p>
+              </div>
+            </div>
+
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Healthy
+            </span>
+          </div>
+
+          <p className="text-xs text-white/60 leading-relaxed">
+            Storing {projects.length} projects, {categories.length} categories, and {brands.length}{' '}
+            brands in high-speed local browser cache.
+          </p>
+        </div>
       </div>
+
+      {/* Cloud Setup Guide Card (if not connected) */}
+      {!isCloudConnected && (
+        <div className="p-6 sm:p-8 rounded-3xl bg-[#0C0C0C] border border-[#F57C00]/30 space-y-4 relative overflow-hidden">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold tracking-[0.25em] text-[#F57C00] uppercase">
+              100% Free Cloud Setup Guide
+            </span>
+          </div>
+          <h3 className="text-lg font-black uppercase text-[#D7E2EA]">
+            How to Enable Instant Multi-Device Sync (3 Steps)
+          </h3>
+
+          <div className="space-y-3 text-xs text-white/70 leading-relaxed pt-2">
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-[#F57C00]/20 text-[#F57C00] font-bold flex items-center justify-center flex-shrink-0 text-xs">
+                1
+              </span>
+              <p>
+                Go to <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-[#F57C00] font-bold hover:underline">supabase.com</a>, create a free project, and go to <strong>Project Settings → API</strong>.
+              </p>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-full bg-[#F57C00]/20 text-[#F57C00] font-bold flex items-center justify-center flex-shrink-0 text-xs">
+                2
+              </span>
+              <p>
+                Copy your <strong>Project URL</strong> and <strong>anon public key</strong>, and paste them into the <code>.env</code> file in your project:
+              </p>
+            </div>
+
+            <div className="bg-[#121212] p-3 rounded-xl font-mono text-[11px] text-[#D7E2EA] border border-white/10 space-y-1">
+              <div>VITE_SUPABASE_URL=https://your-project.supabase.co</div>
+              <div>VITE_SUPABASE_ANON_KEY=your-anon-key-here</div>
+            </div>
+
+            <div className="flex items-start gap-3 pt-2">
+              <span className="w-6 h-6 rounded-full bg-[#F57C00]/20 text-[#F57C00] font-bold flex items-center justify-center flex-shrink-0 text-xs">
+                3
+              </span>
+              <div className="space-y-2 flex-1">
+                <p>
+                  In Supabase dashboard, open <strong>SQL Editor</strong>, paste this setup script, and click <strong>Run</strong>:
+                </p>
+                <button
+                  onClick={copySql}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-[#D7E2EA] font-bold text-xs rounded-xl flex items-center gap-2 transition-colors border border-white/10"
+                >
+                  {copiedSql ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-[#F57C00]" />}
+                  <span>{copiedSql ? 'SQL Script Copied!' : 'Copy Supabase SQL Setup Script'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2-Column Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

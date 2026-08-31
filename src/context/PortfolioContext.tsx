@@ -2,7 +2,7 @@
  * PortfolioContext.tsx
  * ─────────────────────────────────────────────────────────────────────────────
  * Reactive React Context for NOIR_SUBHAN Portfolio & Admin Panel.
- * Synchronizes with IndexedDB and ensures zero-lag reactive updates.
+ * Supports hybrid cloud sync (Supabase) + local offline cache (IndexedDB).
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
@@ -12,12 +12,26 @@ import {
   type DBCategory,
   type DBProject,
 } from '../services/db'
+import {
+  isSupabaseConfigured,
+  fetchCloudBrands,
+  fetchCloudCategories,
+  fetchCloudProjects,
+  upsertCloudBrand,
+  upsertCloudCategory,
+  upsertCloudProject,
+  deleteCloudBrand,
+  deleteCloudCategory,
+  deleteCloudProject,
+  uploadImageToSupabase,
+} from '../services/supabase'
 
 export interface PortfolioContextType {
   brands: DBBrand[]
   categories: DBCategory[]
   projects: DBProject[]
   isLoading: boolean
+  isCloudConnected: boolean
   
   // Auth state
   isAuthenticated: boolean
@@ -57,14 +71,38 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<DBCategory[]>([])
   const [projects, setProjects] = useState<DBProject[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isCloudConnected] = useState<boolean>(isSupabaseConfigured())
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem(AUTH_STORAGE_KEY) === 'true' || localStorage.getItem(AUTH_STORAGE_KEY) === 'true'
   })
 
-  // ── Load All Data ───────────────────────────────────────────────────────────
+  // ── Load All Data (Cloud First if configured, IndexedDB Fallback) ────────────
   const loadData = useCallback(async () => {
     try {
       await portfolioDB.init()
+
+      if (isSupabaseConfigured()) {
+        const [cloudB, cloudC, cloudP] = await Promise.all([
+          fetchCloudBrands(),
+          fetchCloudCategories(),
+          fetchCloudProjects(),
+        ])
+
+        if (cloudB.length > 0 || cloudC.length > 0 || cloudP.length > 0) {
+          setBrands(cloudB)
+          setCategories(cloudC)
+          setProjects(cloudP)
+
+          // Sync to IndexedDB cache
+          cloudB.forEach((b) => portfolioDB.saveBrand(b))
+          cloudC.forEach((c) => portfolioDB.saveCategory(c))
+          cloudP.forEach((p) => portfolioDB.saveProject(p))
+          setIsLoading(false)
+          return
+        }
+      }
+
+      // IndexedDB Fallback
       const [b, c, p] = await Promise.all([
         portfolioDB.getBrands(),
         portfolioDB.getCategories(),
@@ -73,8 +111,15 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       setBrands(b)
       setCategories(c)
       setProjects(p)
+
+      // If Cloud is configured but cloud tables are empty, seed cloud tables automatically
+      if (isSupabaseConfigured() && (b.length > 0 || c.length > 0 || p.length > 0)) {
+        b.forEach((item) => upsertCloudBrand(item))
+        c.forEach((item) => upsertCloudCategory(item))
+        p.forEach((item) => upsertCloudProject(item))
+      }
     } catch (err) {
-      console.error('Error loading portfolio data from IndexedDB:', err)
+      console.error('Error loading portfolio data:', err)
     } finally {
       setIsLoading(false)
     }
@@ -133,12 +178,18 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     const existing = projects.find((p) => p.id === id)
     const order = data.order || (isNew ? projects.length + 1 : existing?.order || 1)
 
+    // Upload image to Cloud storage if Supabase is connected
+    let imageUrl = data.image
+    if (isSupabaseConfigured() && data.image.startsWith('data:')) {
+      imageUrl = await uploadImageToSupabase(data.image, `proj-${id}`)
+    }
+
     const fullProject: DBProject = {
       id,
       categorySlug: data.categorySlug,
       brandName: data.brandName,
       title: data.title.trim(),
-      image: data.image,
+      image: imageUrl,
       type: data.type || 'Design',
       description: data.description || '',
       isFeatured: data.isFeatured ?? false,
@@ -152,17 +203,23 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     if (fullProject.isFeatured && fullProject.image) {
       const cat = categories.find((c) => c.slug === fullProject.categorySlug)
       if (cat) {
-        await portfolioDB.saveCategory({ ...cat, coverImage: fullProject.image, updatedAt: now })
+        await saveCategory({ ...cat, coverImage: fullProject.image, updatedAt: now })
       }
     }
 
     await portfolioDB.saveProject(fullProject)
+    if (isSupabaseConfigured()) {
+      await upsertCloudProject(fullProject)
+    }
     await loadData()
     return fullProject
   }
 
   const deleteProject = async (id: string) => {
     await portfolioDB.deleteProject(id)
+    if (isSupabaseConfigured()) {
+      await deleteCloudProject(id)
+    }
     await loadData()
   }
 
@@ -173,9 +230,11 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     orderedIds.forEach((id, index) => {
       const proj = projectMap.get(id)
       if (proj && proj.order !== index + 1) {
-        updates.push(
-          portfolioDB.saveProject({ ...proj, order: index + 1, updatedAt: Date.now() })
-        )
+        const updated = { ...proj, order: index + 1, updatedAt: Date.now() }
+        updates.push(portfolioDB.saveProject(updated))
+        if (isSupabaseConfigured()) {
+          updates.push(upsertCloudProject(updated))
+        }
       }
     })
 
@@ -195,12 +254,17 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     const existing = categories.find((c) => c.id === id || c.slug === slug)
     const order = data.order || (isNew ? categories.length + 1 : existing?.order || 1)
 
+    let coverUrl = data.coverImage
+    if (isSupabaseConfigured() && data.coverImage.startsWith('data:')) {
+      coverUrl = await uploadImageToSupabase(data.coverImage, `cat-${id}`)
+    }
+
     const fullCat: DBCategory = {
       id,
       slug,
       name: data.name.trim(),
       description: data.description.trim(),
-      coverImage: data.coverImage,
+      coverImage: coverUrl,
       order,
       visible: data.visible ?? true,
       createdAt: existing?.createdAt || now,
@@ -208,6 +272,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     }
 
     await portfolioDB.saveCategory(fullCat)
+    if (isSupabaseConfigured()) {
+      await upsertCloudCategory(fullCat)
+    }
     await loadData()
     return fullCat
   }
@@ -225,6 +292,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     }
 
     await portfolioDB.deleteCategory(id)
+    if (isSupabaseConfigured()) {
+      await deleteCloudCategory(id)
+    }
     await loadData()
     return { success: true }
   }
@@ -236,9 +306,11 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     orderedIds.forEach((id, index) => {
       const cat = catMap.get(id)
       if (cat && cat.order !== index + 1) {
-        updates.push(
-          portfolioDB.saveCategory({ ...cat, order: index + 1, updatedAt: Date.now() })
-        )
+        const updated = { ...cat, order: index + 1, updatedAt: Date.now() }
+        updates.push(portfolioDB.saveCategory(updated))
+        if (isSupabaseConfigured()) {
+          updates.push(upsertCloudCategory(updated))
+        }
       }
     })
 
@@ -272,6 +344,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     }
 
     await portfolioDB.saveBrand(fullBrand)
+    if (isSupabaseConfigured()) {
+      await upsertCloudBrand(fullBrand)
+    }
     await loadData()
     return fullBrand
   }
@@ -289,6 +364,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     }
 
     await portfolioDB.deleteBrand(id)
+    if (isSupabaseConfigured()) {
+      await deleteCloudBrand(id)
+    }
     await loadData()
     return { success: true }
   }
@@ -300,9 +378,11 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     orderedIds.forEach((id, index) => {
       const b = brandMap.get(id)
       if (b && b.order !== index + 1) {
-        updates.push(
-          portfolioDB.saveBrand({ ...b, order: index + 1, updatedAt: Date.now() })
-        )
+        const updated = { ...b, order: index + 1, updatedAt: Date.now() }
+        updates.push(portfolioDB.saveBrand(updated))
+        if (isSupabaseConfigured()) {
+          updates.push(upsertCloudBrand(updated))
+        }
       }
     })
 
@@ -345,7 +425,6 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
             return
           }
 
-          // Use high quality image rendering
           ctx.imageSmoothingEnabled = true
           ctx.imageSmoothingQuality = 'high'
           ctx.drawImage(img, 0, 0, width, height)
@@ -384,6 +463,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
         categories,
         projects,
         isLoading,
+        isCloudConnected,
         isAuthenticated,
         login,
         logout,
