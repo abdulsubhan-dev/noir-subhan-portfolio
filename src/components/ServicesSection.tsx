@@ -22,11 +22,7 @@ const SERVICES = [
     title: 'Branding',
     desc: 'Complete brand identity systems — logos, color palettes, typography, and brand guidelines that establish a strong, memorable presence.',
   },
-  {
-    num: '05',
-    title: 'Web & Digital Design',
-    desc: 'Modern, conversion-focused digital experiences with attention to layout, typography, UX, and visual storytelling.',
-  },
+  
 ]
 
 export default function ServicesSection() {

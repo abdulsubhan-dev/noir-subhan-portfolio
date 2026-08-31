@@ -19,49 +19,49 @@ export default function AboutSection() {
       className="min-h-screen flex items-center justify-center px-5 sm:px-8 md:px-10 py-20 relative overflow-hidden"
       style={{ background: '#0C0C0C' }}
     >
-      {/* ── Corner decorative images — compact & managed for mobile view ── */}
+      {/* ── Corner decorative images — positioned cleanly ABOVE heading and BELOW button ── */}
       <FadeIn
         delay={0.1}
-        x={-80}
+        x={-20}
         y={0}
-        duration={0.9}
-        className="absolute w-[55px] xs:w-[70px] sm:w-[160px] md:w-[210px] top-[2%] sm:top-[4%] left-[2%] md:left-[4%] pointer-events-none"
+        duration={0.7}
+        className="absolute w-[58px] xs:w-[72px] sm:w-[160px] md:w-[210px] top-[3%] sm:top-[4%] left-[3%] sm:left-[2%] md:left-[4%] pointer-events-none z-10"
       >
         <img src={decorTopLeft} alt="" draggable={false} className="w-full" />
       </FadeIn>
 
       <FadeIn
         delay={0.25}
-        x={-80}
+        x={-20}
         y={0}
-        duration={0.9}
-        className="absolute w-[48px] xs:w-[62px] sm:w-[140px] md:w-[180px] bottom-[3%] sm:bottom-[8%] left-[2%] sm:left-[6%] md:left-[10%] pointer-events-none"
+        duration={0.7}
+        className="absolute w-[54px] xs:w-[68px] sm:w-[140px] md:w-[180px] bottom-[3%] sm:bottom-[8%] left-[3%] sm:left-[6%] md:left-[10%] pointer-events-none z-10"
       >
         <img src={decorBottomLeft} alt="" draggable={false} className="w-full" />
       </FadeIn>
 
       <FadeIn
         delay={0.15}
-        x={80}
+        x={20}
         y={0}
-        duration={0.9}
-        className="absolute w-[55px] xs:w-[70px] sm:w-[160px] md:w-[210px] top-[2%] sm:top-[4%] right-[2%] md:right-[4%] pointer-events-none"
+        duration={0.7}
+        className="absolute w-[58px] xs:w-[72px] sm:w-[160px] md:w-[210px] top-[3%] sm:top-[4%] right-[3%] sm:right-[2%] md:right-[4%] pointer-events-none z-10"
       >
         <img src={decorTopRight} alt="" draggable={false} className="w-full" />
       </FadeIn>
 
       <FadeIn
         delay={0.3}
-        x={80}
+        x={20}
         y={0}
-        duration={0.9}
-        className="absolute w-[58px] xs:w-[74px] sm:w-[170px] md:w-[220px] bottom-[3%] sm:bottom-[8%] right-[2%] sm:right-[6%] md:right-[10%] pointer-events-none"
+        duration={0.7}
+        className="absolute w-[60px] xs:w-[74px] sm:w-[170px] md:w-[220px] bottom-[3%] sm:bottom-[8%] right-[3%] sm:right-[6%] md:right-[10%] pointer-events-none z-10"
       >
         <img src={decorBottomRight} alt="" draggable={false} className="w-full" />
       </FadeIn>
 
       {/* ── Main content ── */}
-      <div className="flex flex-col items-center gap-10 sm:gap-14 md:gap-16 z-10">
+      <div className="flex flex-col items-center gap-10 sm:gap-14 md:gap-16 z-10 pt-8 sm:pt-0">
         {/* Heading */}
         <FadeIn delay={0} y={40}>
           <h2

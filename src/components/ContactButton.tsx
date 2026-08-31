@@ -8,9 +8,9 @@ export default function ContactButton() {
       rel="noopener noreferrer"
       className="inline-block rounded-full px-8 py-3 sm:px-10 sm:py-3.5 md:px-12 md:py-4 text-xs sm:text-sm md:text-base font-medium uppercase tracking-widest text-white text-center no-underline cursor-pointer hover:opacity-90 transition-opacity"
       style={{
-        background: 'linear-gradient(123deg, #18011F 7%, #B600A8 37%, #7621B0 72%, #BE4C00 100%)',
-        boxShadow: '0px 4px 4px rgba(181, 1, 167, 0.25), 4px 4px 12px #7721B1 inset',
-        outline: '2px solid rgba(255,255,255,1)',
+        background: 'linear-gradient(123deg, #0A0A0A 0%, #1A120A 35%, #C85500 75%, #F57C00 100%)',
+        boxShadow: '0px 4px 20px rgba(245, 124, 0, 0.35), inset 0px 2px 8px rgba(245, 124, 0, 0.4)',
+        outline: '2px solid rgba(255, 255, 255, 1)',
         outlineOffset: '-3px',
       }}
     >

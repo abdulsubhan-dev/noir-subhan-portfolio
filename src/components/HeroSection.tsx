@@ -22,12 +22,12 @@ export default function HeroSection() {
         </motion.h1>
       </div>
 
-      {/* ── Hero Portrait (Overlaps "HI, I'M SUBHAN" heading on mobile just like desktop) ── */}
+      {/* ── Hero Portrait (Fills middle gap & overlaps heading gracefully) ── */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-        className="absolute inset-x-0 mx-auto z-10 w-[290px] xs:w-[330px] sm:w-[380px] md:w-[460px] lg:w-[520px] top-[115px] xs:top-[125px] sm:top-auto sm:bottom-0"
+        className="absolute inset-x-0 mx-auto z-10 w-[310px] xs:w-[350px] sm:w-[380px] md:w-[460px] lg:w-[520px] bottom-[85px] xs:bottom-[90px] sm:bottom-0"
       >
         <Magnet
           padding={150}
